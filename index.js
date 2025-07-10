@@ -57,8 +57,6 @@ mapa.addEventListener("click", function(event) {
         const pontaLivreInicial = !pontaInicialConectada;
 const pontaLivreFinal   = !pontaFinalConectada;
 
-            if (!pontaInicialConectada) pontaLivre = 'inicial';
-            else if (!pontaFinalConectada) pontaLivre = 'final';
 
             criaCano(tentativaX1, tentativaY1, distX, distY, pontaLivreInicial, pontaLivreFinal);
             renderizarTolerancias();
@@ -120,8 +118,9 @@ function criaCano(x, y, dx, dy, pontaLivreInicial, pontaLivreFinal) {
 pontaLivreFinal
     });
 
-    const pontoInicialX = x;
-    const pontoInicialY = y + 10;
+    const alturaCano = 6; // mesma altura que você usa no estilo
+const pontoInicialX = x;
+const pontoInicialY = y - alturaCano / 2;
 
     const cano = document.createElement('div');
     cano.style.position = 'absolute';
@@ -130,7 +129,7 @@ pontaLivreFinal
     cano.style.height = `6px`;
     cano.style.width = `0px`;
     cano.style.backgroundColor = 'limegreen';
-    cano.style.transformOrigin = '0 0';
+cano.style.transformOrigin = 'left center';
     cano.style.transform = `rotate(${anguloDeg}deg)`;
     cano.style.transition = 'width 300ms ease-out';
 
@@ -273,4 +272,13 @@ function atualizarPontasLivres(x, y) {
 
 function verCanos(){
     console.log(canosConstruidos)
+}
+
+function estaSobreTroncoDeBomba(x, y) {
+    return bombas.some(b => {
+        const dx = x - b.x;
+        const dy = y - b.y;
+        const dist = Math.sqrt(dx**2 + dy**2);
+        return dist < 5; // exige maior precisão — bem centralizado
+    });
 }
