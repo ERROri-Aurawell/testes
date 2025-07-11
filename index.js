@@ -1,111 +1,91 @@
-//The real power
-
+// the real power
 let counter = false;
 let position1 = [];
 let position2 = [];
+let pipes = [];
+let pumps = [];
 
-const bombas = [];
-bombas.push({ x: 100, y: 150 });
+let localPumps = [];
 
-window.addEventListener('load', () => {
-    atualizarDinheiro();
-    renderizarBombas();
-    renderizarTolerancias();
-});
 
-let canosConstruidos = [];
+//pumps.push({ x: 100, y: 150 });
 
-const mapa = document.getElementById('mapa');
 
-mapa.addEventListener("click", function(event) {
-    const rect = mapa.getBoundingClientRect();
+
+const superficie = document.getElementById('superficie');
+
+let pumpPendente = null; // Armazena o clique aguardando confirmação
+
+superficie.addEventListener('click', function (event) {
+    const rect = superficie.getBoundingClientRect();
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
 
-    if (x < 0 || y < 0 || x > rect.width || y > rect.height) return;
+    pumpPendente = { x, y };
+    console.log(`Clique em: X=${x}px, Y=${y}px na superficie — aguardando confirmação...`);
+});
 
-    if (counter) {
-        counter = false;
-        const ponto2 = encontrarPontoCano(x, y) || encontrarPontoBomba(x, y) || { x, y };
-        position2 = [ponto2.x, ponto2.y];
-
-        const distX = position2[0] - position1[0];
-        const distY = position2[1] - position1[1];
-        const distancia = Math.sqrt(distX**2 + distY**2);
-
-        const tentativaX1 = position1[0];
-        const tentativaY1 = position1[1];
-        const tentativaX2 = position2[0];
-        const tentativaY2 = position2[1];
-
-        if (
-            distancia >= 20 &&
-            (pontoSobreCano(tentativaX1, tentativaY1) ||
-             pontoSobreCano(tentativaX2, tentativaY2) ||
-             pontoSobreBomba(tentativaX1, tentativaY1) ||
-             pontoSobreBomba(tentativaX2, tentativaY2))
-        ) {
-            if (canoColide(tentativaX1, tentativaY1, tentativaX2, tentativaY2)) {
-                console.log("🚫 Interseção com outro cano detectada. Construção bloqueada.");
-                return;
-            }
-
-            const pontaInicialConectada = pontoSobreCano(tentativaX1, tentativaY1) || pontoSobreBomba(tentativaX1, tentativaY1);
-            const pontaFinalConectada = pontoSobreCano(tentativaX2, tentativaY2) || pontoSobreBomba(tentativaX2, tentativaY2);
-
-        
-        const pontaLivreInicial = !pontaInicialConectada;
-const pontaLivreFinal   = !pontaFinalConectada;
-
-
-            criaCano(tentativaX1, tentativaY1, distX, distY, pontaLivreInicial, pontaLivreFinal);
-            renderizarTolerancias();
-            atualizarPontasLivres(tentativaX1, tentativaY1);
-            atualizarPontasLivres(tentativaX2, tentativaY2);
-        } else {
-            console.log('❌ Nenhuma ponta está sobre bomba ou cano existente');
-        }
+document.getElementById('confirmarPump').addEventListener('click', function () {
+    if (pumpPendente) {
+        criarPump(pumpPendente.x, pumpPendente.y);
+        pumpPendente = null; // Limpa
     } else {
-        counter = true;
-        const ponto1 = encontrarPontoCano(x, y) || encontrarPontoBomba(x, y) || { x, y };
-        position1 = [ponto1.x, ponto1.y];
+        console.log("Nenhum clique pendente para confirmar.");
     }
 });
 
-let money = 100000;
+const subsolo = document.getElementById('subsolo');
 
-function custoCano(comprimento) {
-    const taxa = 150;
-    const precoPixel = 5;
-    const total = taxa + (precoPixel * comprimento);
-    return Math.round(total * 100) / 100;
+subsolo.addEventListener('click', function (event) {
+    // Posição relativa ao elemento subsolo
+    const rect = subsolo.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+
+    console.log(`Clique em: X=${x}px, Y=${y}px no subsolo`);
+});
+
+function verCanos() {
+    console.log("Canos: ")
+    for (let cano of pipes) {
+        console.log(cano)
+    }
 }
 
-function atualizarDinheiro() {
-    const el = document.getElementById('dinheiro');
-    el.textContent = money.toFixed(2);
+function criarPump(x, y) {
+    const bomba = document.createElement('div');
+    bomba.classList.add('pump');
+
+    bomba.style.position = 'absolute';
+    bomba.style.left = `${x}px`;
+    bomba.style.top = `${y}px`;
+    bomba.style.width = '40px';
+    bomba.style.height = '40px';
+    bomba.style.backgroundColor = 'red';
+    bomba.style.borderRadius = '50%';
+    bomba.style.border = '2px solid black';
+    bomba.style.boxShadow = '0 0 6px rgba(0,0,0,0.5)';
+
+    pumps.push({ x, y });
+
+    document.getElementById('superficie').appendChild(bomba);
+
+    console.log(`Pump criada em: X=${x}, Y=${y}`);
 }
 
-function criaCano(x, y, dx, dy, pontaLivreInicial, pontaLivreFinal) {
+
+function criarCano(x, y, dx, dy) {
     const xFinal = x + dx;
     const yFinal = y + dy;
     const anguloRad = Math.atan2(dy, dx);
     const anguloDeg = anguloRad * (180 / Math.PI);
-    const comprimento = Math.sqrt(dx**2 + dy**2);
-    const custo = custoCano(comprimento);
+    const comprimento = Math.sqrt(dx ** 2 + dy ** 2);
 
-    console.log(`💰 Custo do cano: R$${custo}`);
+    const pontoInicialX = x;
+    const pontoInicialY = y + 52;
 
-    if (money < custo) {
-        console.log('❌ Dinheiro insuficiente para construir o cano.');
-        return;
-    }
 
-    money -= custo;
-    atualizarDinheiro();
-    console.log(`✅ Construção aprovada! Dinheiro restante: R$${money}`);
-
-    canosConstruidos.push({
+    pipes.push({
         xInicial: x,
         yInicial: y,
         xFinal,
@@ -114,13 +94,11 @@ function criaCano(x, y, dx, dy, pontaLivreInicial, pontaLivreFinal) {
         dy,
         comprimento: parseFloat(comprimento.toFixed(2)),
         angulo: parseFloat(anguloDeg.toFixed(2)),
-        pontaLivreInicial,
-pontaLivreFinal
+        //pontaLivreInicial,
+        //pontaLivreFinal
     });
 
-    const alturaCano = 6; // mesma altura que você usa no estilo
-const pontoInicialX = x;
-const pontoInicialY = y - alturaCano / 2;
+    console.log(pipes)
 
     const cano = document.createElement('div');
     cano.style.position = 'absolute';
@@ -129,156 +107,12 @@ const pontoInicialY = y - alturaCano / 2;
     cano.style.height = `6px`;
     cano.style.width = `0px`;
     cano.style.backgroundColor = 'limegreen';
-cano.style.transformOrigin = 'left center';
+    cano.style.transformOrigin = 'left center';
     cano.style.transform = `rotate(${anguloDeg}deg)`;
     cano.style.transition = 'width 300ms ease-out';
 
-    document.body.appendChild(cano);
+    document.getElementById('subsolo').appendChild(cano);
     setTimeout(() => {
         cano.style.width = `${comprimento}px`;
     }, 50);
-}
-
-function pontoSobreCano(x, y) {
-    return canosConstruidos.some(cano => {
-        return [[cano.xInicial, cano.yInicial], [cano.xFinal, cano.yFinal]].some(([px, py]) => {
-            return Math.hypot(x - px, y - py) < 20;
-        });
-    });
-}
-
-function pontoSobreBomba(x, y) {
-    return bombas.some(b => Math.hypot(x - b.x, y - b.y) < 20);
-}
-
-function encontrarPontoCano(x, y) {
-    for (const cano of canosConstruidos) {
-        const pontos = [
-            [cano.xInicial, cano.yInicial],
-            [cano.xFinal, cano.yFinal]
-        ];
-        for (const [px, py] of pontos) {
-            if (Math.hypot(x - px, y - py) < 20) return { x: px, y: py };
-        }
-    }
-    return null;
-}
-
-function encontrarPontoBomba(x, y) {
-    for (const b of bombas) {
-        if (Math.hypot(x - b.x, y - b.y) < 20) return { x: b.x, y: b.y };
-    }
-    return null;
-}
-
-function renderizarBombas() {
-    bombas.forEach(({ x, y }) => {
-        const bomba = document.createElement('div');
-        bomba.style.position = 'absolute';
-        bomba.style.left = `${x - 10}px`;
-        bomba.style.top = `${y - 30}px`;
-        bomba.style.width = `20px`;
-        bomba.style.height = `40px`;
-        bomba.style.zIndex = '5';
-        bomba.innerHTML = `
-            <div style="width:100%; height:70%; background-color:green; border-radius:4px 4px 0 0;"></div>
-            <div style="width:50%; height:30%; background-color:saddlebrown; margin:0 auto;"></div>
-        `;
-        mapa.appendChild(bomba);
-    });
-}
-
-function renderizarTolerancias() {
-    
-    
-    document.querySelectorAll('.tolerancia').forEach(el => el.remove());
-
-    bombas.forEach(({ x, y }) => {
-        adicionarCirculoTolerancia(x, y, 'rgba(255, 0, 0, 0.15)', 'red');
-    });
-
-    canosConstruidos.forEach(cano => {
-    if (cano.pontaLivreInicial) {
-        adicionarCirculoTolerancia(cano.xInicial, cano.yInicial, 'rgba(0, 0, 255, 0.15)', 'blue');
-    }
-    if (cano.pontaLivreFinal) {
-        adicionarCirculoTolerancia(cano.xFinal, cano.yFinal, 'rgba(0, 0, 255, 0.15)', 'blue');
-    }
-});
-}
-
-function adicionarCirculoTolerancia(x, y, corFundo, corBorda) {
-    const circulo = document.createElement('div');
-    circulo.className = 'tolerancia';
-    circulo.style.position = 'absolute';
-    circulo.style.left = `${x - 10}px`;
-    circulo.style.top = `${y - 10}px`;
-    circulo.style.width = '20px';
-    circulo.style.height = '20px';
-    circulo.style.borderRadius = '50%';
-    circulo.style.backgroundColor = corFundo;
-    circulo.style.border = `1px solid ${corBorda}`;
-    circulo.style.pointerEvents = 'none';
-    circulo.style.zIndex = '1';
-    mapa.appendChild(circulo);
-}
-
-function segmentosColidem(x1, y1,x2, y2,
-x3, y3,
-x4, y4) {
-    function ccw(ax, ay, bx, by, cx, cy) {
-        return (cy - ay) * (bx - ax) > (by - ay) * (cx - ax);
-    }
-
-    return (
-        ccw(x1, y1, x3, y3, x4, y4) !== ccw(x2, y2, x3, y3, x4, y4) &&
-        ccw(x1, y1, x2, y2, x3, y3) !== ccw(x1, y1, x2, y2, x4, y4)
-    );
-}
-
-function pontosIguais(x1, y1, x2, y2, tolerancia = 1) {
-    return Math.abs(x1 - x2) < tolerancia && Math.abs(y1 - y2) < tolerancia;
-}
-
-function canoColide(x1, y1, x2, y2) {
-    return canosConstruidos.some(cano => {
-        const cx1 = cano.xInicial;
-        const cy1 = cano.yInicial;
-        const cx2 = cano.xFinal;
-        const cy2 = cano.yFinal;
-
-        // Permitir se tocar nas pontas
-        if (
-            pontosIguais(x1, y1, cx1, cy1) || pontosIguais(x1, y1, cx2, cy2) ||
-            pontosIguais(x2, y2, cx1, cy1) || pontosIguais(x2, y2, cx2, cy2)
-        ) {
-            return false; // conexão válida
-        }
-
-        return segmentosColidem(x1, y1, x2, y2, cx1, cy1, cx2, cy2);
-    });
-}
-
-function atualizarPontasLivres(x, y) {
-    for (const cano of canosConstruidos) {
-        if (cano.pontaLivreInicial && Math.hypot(x - cano.xInicial, y - cano.yInicial) < 20) {
-            cano.pontaLivreInicial = false;
-        }
-        if (cano.pontaLivreFinal && Math.hypot(x - cano.xFinal, y - cano.yFinal) < 20) {
-            cano.pontaLivreFinal = false;
-        }
-    }
-}
-
-function verCanos(){
-    console.log(canosConstruidos)
-}
-
-function estaSobreTroncoDeBomba(x, y) {
-    return bombas.some(b => {
-        const dx = x - b.x;
-        const dy = y - b.y;
-        const dist = Math.sqrt(dx**2 + dy**2);
-        return dist < 5; // exige maior precisão — bem centralizado
-    });
 }
