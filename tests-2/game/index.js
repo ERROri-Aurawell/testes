@@ -1,6 +1,7 @@
 let pumps = [];
 let pipes = [];
 let pumpTotalConections = 1;
+let pipeTotalConections = 1;
 let money = 2000;
 let position1 = null;
 let position2 = null;
