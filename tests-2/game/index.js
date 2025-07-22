@@ -90,6 +90,7 @@ function creatingPump(x, y, canvas, event, ctx) {
       return;
     }
     money -= 100; // Deduz o custo da bomba
+    atualizarDinheiro();
     console.log(`Dinheiro restante: ${money}`);
 
     pumps.push(pump);
@@ -142,6 +143,7 @@ function creatingPipe(x, y, canvas, event, ctx) {
           return;
         }
         money -= custo;
+        atualizarDinheiro();
         console.log(`Cano criado com sucesso! Custo: ${custo}, Dinheiro restante: ${money}`);
         // Cria o cano
 
@@ -229,3 +231,12 @@ window.onload = () => {
     }
   });
 };
+
+function atualizarDinheiro() {
+    const el = document.getElementById('dinheiro');
+    el.textContent = money.toFixed(2);
+}
+
+window.addEventListener('load', () => {
+    atualizarDinheiro();
+});
